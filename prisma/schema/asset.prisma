@@ -1,0 +1,17 @@
+model Asset {
+    id String @id @default(uuid())
+    symbol String
+    lastPrice Decimal @db.Decimal(20, 8)
+    priceChangePercent Decimal @db.Decimal(10, 3)
+    highPrice Decimal @db.Decimal(20, 8)
+    lowPrice Decimal @db.Decimal(20, 8)
+    volume Decimal @db.Decimal(20, 8)
+    quoteVolume Decimal @db.Decimal(20, 8)
+    count Int
+    timestamp BigInt 
+    source String @default("Binance")
+    createdAt DateTime @default(now())
+
+    @@unique([symbol, timestamp])
+    @@index([symbol])
+}

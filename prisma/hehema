@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Event {
+  id         String   @id @default(uuid())
+  source     String   // მაგ: "GitHub" ან "CoinGecko"
+  eventType  String   // მაგ: "PushEvent"
+  payload    Json     // აქ შეინახება ნორმალიზებული დატა
+  rawData    Json     // ორიგინალი მონაცემები API-დან
+  createdAt  DateTime @default(now())
+}
+
+// სტატუსების ჩამონათვალი (Enum)
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  status      TaskStatus @default(PENDING)
+  
+  // რელაცია კატეგორიასთან
+  categoryId  String?
+  category    Category?  @relation(fields: [categoryId], references: [id])
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Category {
+  id    String @id @default(uuid())
+  name  String @unique
+  tasks Task[]
+}

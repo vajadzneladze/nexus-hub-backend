@@ -1,0 +1,8 @@
+model Event {
+  id        String   @id @default(uuid())
+  source    String   
+  eventType String   
+  payload   Json     
+  rawData   Json     
+  createdAt DateTime @default(now())
+}
