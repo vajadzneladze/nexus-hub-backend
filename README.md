@@ -1,6 +1,6 @@
 # Nexus Hub Backend | Real-Time Crypto Analytics Platform
 
-A high-performance, event-driven backend service built with **NestJS**, designed to ingest, process, and broadcast real-time cryptocurrency market data using **WebSockets** and **automated task scheduling**.
+A high-performance, event-driven backend service built with **NestJS**, designed to ingest, process, and broadcast real-time cryptocurrency market data using **WebSockets**, **automated task scheduling**, and **multi-level caching**.
 
 ---
 
@@ -10,9 +10,9 @@ This system is engineered for low-latency data flow and high consistency. It imp
 
 ### Key Pillars:
 * **Data Ingestion (The Producer):** An automated cron-based service that synchronizes market data every 5 seconds, ensuring the local state is never stale.
-* **Real-Time Gateway (The Emitter):** A WebSocket implementation using **Socket.io** with a **Room-based architecture**. This ensures users only receive data for symbols they are explicitly subscribed to, significantly reducing network overhead.
-* **Persistence Layer:** **PostgreSQL** orchestrated via **Prisma ORM**, utilizing optimized `upsert` operations for data integrity and performance.
-* **Data Integrity:** Custom precision handling (4-decimal truncation) and BigInt serialization patches to ensure JSON compatibility across the stack.
+* **Hybrid Caching (The Accelerator):** Implements a **Cache-Aside strategy** using `cache-manager`. High-frequency "Latest Price" requests are served directly from RAM, bypassing the database for sub-millisecond response times.
+* **Real-Time Gateway (The Emitter):** A WebSocket implementation using **Socket.io** with a **Room-based architecture**. Users receive updates only for subscribed symbols, minimizing network overhead.
+* **Persistence Layer:** **PostgreSQL** orchestrated via **Prisma ORM**, utilizing optimized `upsert` operations.
 
 ---
 
@@ -24,24 +24,26 @@ This system is engineered for low-latency data flow and high consistency. It imp
 | **Language** | TypeScript |
 | **Database** | PostgreSQL |
 | **ORM** | Prisma |
+| **Caching** | Cache-Manager (In-Memory / Redis-ready) |
 | **Real-time** | Socket.io (WebSockets) |
 | **Scheduling** | NestJS Schedule (Cron) |
-| **HTTP Client** | Axios (RxJS Observables) |
 
 ---
 
 ## 🚀 Key Features & Optimizations
 
-### 1. Room-Based WebSocket Broadcasting
-Unlike global broadcasting, this system utilizes **Socket.io Rooms**. When a client joins, they must subscribe to a specific symbol (e.g., `BTCUSDT`). 
-* **Benefit:** Zero wasted bandwidth for the client and reduced CPU cycles for the server.
+### 1. Advanced Caching Strategy
+To ensure maximum scalability, the system implements a caching layer for all "Latest Price" queries.
+* **Write-Through:** Every 5 seconds, the ingestion service updates the cache.
+* **Cache-Aside:** API endpoints first check the cache before querying PostgreSQL.
+* **Benefit:** Significant reduction in DB IOPS and near-instant API responses.
 
-### 2. Intelligent Data Sync (Upsert Logic)
-The ingestion service uses a composite unique key (`symbol_timestamp`) to perform `upsert` operations. This prevents duplicate entries while allowing for atomic updates if the source data refreshes within the same millisecond.
+### 2. Room-Based WebSocket Broadcasting
+Utilizes **Socket.io Rooms** to segregate traffic. Clients only receive data for the specific assets they track, reducing client-side processing.
 
-### 3. Precision & Performance
-* **Decimals:** All financial data is processed through a transformation layer to maintain 4-decimal precision, preventing floating-point errors common in JavaScript.
-* **BigInt Serialization:** Implemented a global JSON prototype patch to handle PostgreSQL `BigInt` (timestamps) seamlessly without manual string conversion in every controller.
+### 3. Data Integrity & Serialization
+* **BigInt Interceptor:** A global interceptor handles PostgreSQL `BigInt` (timestamps) serialization to JSON automatically, preventing common JavaScript runtime errors.
+* **Precision Handling:** Financial data is normalized to 4-decimal precision across the entire pipeline.
 
 ---
 
