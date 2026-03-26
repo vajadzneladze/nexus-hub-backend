@@ -1,98 +1,58 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Nexus Hub Backend | Real-Time Crypto Analytics Platform
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A high-performance, event-driven backend service built with **NestJS**, designed to ingest, process, and broadcast real-time cryptocurrency market data using **WebSockets** and **automated task scheduling**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 🏗️ Architectural Overview
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+This system is engineered for low-latency data flow and high consistency. It implements a robust pipeline from external liquidity providers (Binance API) to end-users via a reactive architecture.
 
-## Project setup
+### Key Pillars:
+* **Data Ingestion (The Producer):** An automated cron-based service that synchronizes market data every 5 seconds, ensuring the local state is never stale.
+* **Real-Time Gateway (The Emitter):** A WebSocket implementation using **Socket.io** with a **Room-based architecture**. This ensures users only receive data for symbols they are explicitly subscribed to, significantly reducing network overhead.
+* **Persistence Layer:** **PostgreSQL** orchestrated via **Prisma ORM**, utilizing optimized `upsert` operations for data integrity and performance.
+* **Data Integrity:** Custom precision handling (4-decimal truncation) and BigInt serialization patches to ensure JSON compatibility across the stack.
 
-```bash
-$ pnpm install
-```
+---
 
-## Compile and run the project
+## 🛠️ Technology Stack
 
-```bash
-# development
-$ pnpm run start
+| Layer | Technology |
+| :--- | :--- |
+| **Framework** | NestJS (Node.js) |
+| **Language** | TypeScript |
+| **Database** | PostgreSQL |
+| **ORM** | Prisma |
+| **Real-time** | Socket.io (WebSockets) |
+| **Scheduling** | NestJS Schedule (Cron) |
+| **HTTP Client** | Axios (RxJS Observables) |
 
-# watch mode
-$ pnpm run start:dev
+---
 
-# production mode
-$ pnpm run start:prod
-```
+## 🚀 Key Features & Optimizations
 
-## Run tests
+### 1. Room-Based WebSocket Broadcasting
+Unlike global broadcasting, this system utilizes **Socket.io Rooms**. When a client joins, they must subscribe to a specific symbol (e.g., `BTCUSDT`). 
+* **Benefit:** Zero wasted bandwidth for the client and reduced CPU cycles for the server.
 
-```bash
-# unit tests
-$ pnpm run test
+### 2. Intelligent Data Sync (Upsert Logic)
+The ingestion service uses a composite unique key (`symbol_timestamp`) to perform `upsert` operations. This prevents duplicate entries while allowing for atomic updates if the source data refreshes within the same millisecond.
 
-# e2e tests
-$ pnpm run test:e2e
+### 3. Precision & Performance
+* **Decimals:** All financial data is processed through a transformation layer to maintain 4-decimal precision, preventing floating-point errors common in JavaScript.
+* **BigInt Serialization:** Implemented a global JSON prototype patch to handle PostgreSQL `BigInt` (timestamps) seamlessly without manual string conversion in every controller.
 
-# test coverage
-$ pnpm run test:cov
-```
+---
 
-## Deployment
+## 🚦 Getting Started
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Prerequisites
+* Node.js (v18+)
+* PostgreSQL
+* pnpm (recommended)
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone [https://github.com/vajadzneladze/nexus-hub-backend.git](https://github.com/vajadzneladze/nexus-hub-backend.git)
