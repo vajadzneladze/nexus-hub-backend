@@ -60,28 +60,40 @@ async handleCron() {
   private async storeInDatabase(apiData: any) {
   // დამხმარე ფუნქცია 4 ციფრამდე დასამრგვალებლად
   const trim = (value: string | number) => Number(Number(value).toFixed(4));
-
-  return await this.prisma.asset.upsert({
-    where: {
-      symbol_timestamp: {
-        symbol: apiData.symbol,
-        timestamp: BigInt(apiData.closeTime),
-      },
-    },
-    update: {},
-    create: {
+  const whereUnique = {
+    symbol_timestamp: {
       symbol: apiData.symbol,
-      // აი აქ ვიყენებთ ჩვენს "ჩამომჭრელ" ფუნქციას
-      lastPrice: trim(apiData.lastPrice),
-      priceChangePercent: trim(apiData.priceChangePercent),
-      highPrice: trim(apiData.highPrice),
-      lowPrice: trim(apiData.lowPrice),
-      volume: trim(apiData.volume),
-      quoteVolume: trim(apiData.quoteVolume),
-      count: apiData.count,
       timestamp: BigInt(apiData.closeTime),
-      source: 'Binance',
     },
-  });
+  };
+
+  try {
+    // რატომ არა პირდაპირ upsert:
+    // რეალურ გარემოში (cron + startup fetch + network jitter) ერთი და იგივე candle
+    // შეიძლება პარალელურად დამუშავდეს. ასეთ დროს create იღებს race-ს და P2002-ს აგდებს.
+    // ქვემოთ fallback-ს ვაკეთებთ, რომ უკვე არსებული ჩანაწერი დავაბრუნოთ მშვიდად.
+    return await this.prisma.asset.create({
+      data: {
+        symbol: apiData.symbol,
+        // აი აქ ვიყენებთ ჩვენს "ჩამომჭრელ" ფუნქციას
+        lastPrice: trim(apiData.lastPrice),
+        priceChangePercent: trim(apiData.priceChangePercent),
+        highPrice: trim(apiData.highPrice),
+        lowPrice: trim(apiData.lowPrice),
+        volume: trim(apiData.volume),
+        quoteVolume: trim(apiData.quoteVolume),
+        count: apiData.count,
+        timestamp: BigInt(apiData.closeTime),
+        source: 'Binance',
+      },
+    });
+  } catch (error: any) {
+    // P2002 = Unique constraint violation (symbol + timestamp უკვე არსებობს)
+    // ეს case ingestion-ისთვის მოსალოდნელია და error-ად არ უნდა ჩაითვალოს.
+    if (error?.code === 'P2002') {
+      return this.prisma.asset.findUnique({ where: whereUnique });
+    }
+    throw error;
+  }
 }
 }
