@@ -15,6 +15,8 @@ describe('TasksService', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TasksService,
@@ -27,5 +29,42 @@ describe('TasksService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('maps categoryName to relation update payload', async () => {
+    prismaMock.task.update.mockResolvedValue({ id: '1' });
+
+    await service.update('1', {
+      title: 'Updated title',
+      categoryName: 'Work',
+    });
+
+    expect(prismaMock.task.update).toHaveBeenCalledWith({
+      where: { id: '1' },
+      data: {
+        title: 'Updated title',
+        category: {
+          connectOrCreate: {
+            where: { name: 'Work' },
+            create: { name: 'Work' },
+          },
+        },
+      },
+    });
+  });
+
+  it('disconnects category when categoryName is empty', async () => {
+    prismaMock.task.update.mockResolvedValue({ id: '1' });
+
+    await service.update('1', {
+      categoryName: '   ',
+    });
+
+    expect(prismaMock.task.update).toHaveBeenCalledWith({
+      where: { id: '1' },
+      data: {
+        category: { disconnect: true },
+      },
+    });
   });
 });

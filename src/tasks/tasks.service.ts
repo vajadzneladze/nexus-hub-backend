@@ -48,9 +48,35 @@ export class TasksService {
   }
 
   update(id: string, updateTaskDto: UpdateTaskDto) {
+    // DTO-ს ვყოფთ 2 ნაწილად:
+    // 1) Task-ის პირდაპირი ველები (title, description...)
+    // 2) API-ს "დამხმარე" ველი categoryName, რომელიც Task table-ში არ არსებობს.
+    // ეს გვიცავს Prisma runtime error-ისგან: Unknown argument `categoryName`.
+    const { categoryName, ...taskFields } = updateTaskDto;
+    const normalizedCategoryName = categoryName?.trim();
+
+    // categoryName-ის policy:
+    // - undefined => კატეგორიას საერთოდ არ ვეხებით (no-op)
+    // - non-empty string => connectOrCreate (შევუერთოთ ან შევქმნათ)
+    // - empty string => disconnect (კატეგორიის მოხსნა)
+    const categoryRelation =
+      categoryName === undefined
+        ? undefined
+        : normalizedCategoryName
+          ? {
+              connectOrCreate: {
+                where: { name: normalizedCategoryName },
+                create: { name: normalizedCategoryName },
+              },
+            }
+          : { disconnect: true };
+
     return this.prisma.task.update({
       where: { id: id.toString() },
-      data: updateTaskDto,
+      data: {
+        ...taskFields,
+        category: categoryRelation,
+      },
     });
     // return `This action updates a #${id} task`;
   }
