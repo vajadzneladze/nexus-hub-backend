@@ -1,20 +1,25 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import { AssetsController } from './assets.controller';
 import { AssetsService } from './assets.service';
 
-@Controller('assets') // მისამართი: localhost:3000/assets
-export class AssetsController {
-  constructor(private readonly assetsService: AssetsService) {}
+describe('AssetsController', () => {
+  let controller: AssetsController;
+  const assetsServiceMock = {
+    getLatestPrice: jest.fn(),
+    getHistory: jest.fn(),
+    findAll: jest.fn(),
+  };
 
-  // აბრუნებს ყველა აქტივის ბოლო მონაცემებს
-  @Get()
-  findAll() {
-    return this.assetsService.findAll();
-  }
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [AssetsController],
+      providers: [{ provide: AssetsService, useValue: assetsServiceMock }],
+    }).compile();
 
-  // აბრუნებს კონკრეტული კრიპტოს ისტორიას
-  // მაგალითად: localhost:3000/assets/history?symbol=BTCUSDT
-  @Get('history')
-  getHistory(@Query('symbol') symbol: string) {
-    return this.assetsService.getHistory(symbol);
-  }
-}
+    controller = module.get<AssetsController>(AssetsController);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+});
