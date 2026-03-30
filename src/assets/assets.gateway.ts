@@ -1,8 +1,28 @@
-import { WebSocketGateway, OnGatewayInit, MessageBody, ConnectedSocket, WebSocketServer, SubscribeMessage } from '@nestjs/websockets';
+import {
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayInit,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
+  WsException,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 
-@WebSocketGateway({ cors: { origin: '*' } })
+const wsCorsOrigins = (process.env.WS_CORS_ORIGIN || process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+@WebSocketGateway({
+  cors: {
+    origin: wsCorsOrigins.length
+      ? wsCorsOrigins
+      : ['http://localhost:3000', 'http://localhost:5173'],
+    credentials: true,
+  },
+})
 
 export class AssetsGateway implements OnGatewayInit {
   @WebSocketServer() server: Server;
@@ -12,9 +32,15 @@ export class AssetsGateway implements OnGatewayInit {
     @MessageBody() data: { symbol: string },
     @ConnectedSocket() client: Socket,
   ) {
-    client.join(data.symbol.toLowerCase());
-    console.log(`👤 Client ${client.id} joined room: ${data.symbol}`);
-    return { status: 'joined', room: data.symbol.toLowerCase() };
+    // WebSocket payload-იც user input-ია, ამიტომ HTTP-ის მსგავსად validate აუცილებელია.
+    const symbol = data?.symbol?.trim().toUpperCase();
+    if (!symbol || !/^[A-Z0-9]{3,20}$/.test(symbol)) {
+      throw new WsException('Invalid symbol format. Use uppercase market symbol, e.g. BTCUSDT');
+    }
+
+    client.join(symbol.toLowerCase());
+    this.logger.log(`Client ${client.id} joined room: ${symbol}`);
+    return { status: 'joined', room: symbol.toLowerCase() };
   }
 
 

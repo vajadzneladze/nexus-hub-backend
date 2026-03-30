@@ -3,8 +3,24 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
+function parseCorsOrigins(raw: string | undefined) {
+  if (!raw?.trim()) {
+    // Node/Nest-ში CORS "open by default" ცუდი პრაქტიკაა.
+    // Local dev-სთვის უსაფრთხო default ვტოვებთ მხოლოდ ცნობილ localhost origin-ებზე.
+    return ['http://localhost:3000', 'http://localhost:5173'];
+  }
+  return raw.split(',').map((origin) => origin.trim()).filter(Boolean);
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // CORS არის browser-ის უსაფრთხოების კონტროლი cross-origin request-ებზე.
+  // Nest-ში enableCors() გვაძლევს ერთ წერტილს, სადაც origin policy-ს ვაკონტროლებთ.
+  app.enableCors({
+    origin: parseCorsOrigins(process.env.CORS_ORIGIN),
+    credentials: true,
+  });
 
   // Nest-ის request lifecycle-ში Pipe მუშაობს Controller-მდე:
   // 1) incoming JSON-ს გარდაქმნის DTO class instance-ად (transform)
