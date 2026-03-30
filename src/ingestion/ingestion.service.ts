@@ -3,7 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
-import { AssetsGateWay } from 'src/assets/assets.gateway';
+import { AssetsGateway } from 'src/assets/assets.gateway';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 @Injectable()
@@ -18,7 +18,7 @@ export class IngestionService implements OnModuleInit {
   constructor(
     private readonly httpService: HttpService,
     private readonly prisma: PrismaService,
-    private readonly assetsGateway: AssetsGateWay,
+    private readonly assetsGateway: AssetsGateway,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) { }
     // აპლიკაციის ჩართვისთანავე ვუშვებთ ერთხელ, რომ ბაზა ცარიელი არ იყოს
@@ -44,7 +44,7 @@ async handleCron() {
       // 2. Data Validation & Transformation
       // Binance-დან ბევრი ველი მოდის სტრიქონად, ჩვენ კი ბაზაში რიცხვები გვჭირდება
       const savedData = await this.storeInDatabase(data);
-      await this.cacheManager.set(`latest_${symbol}`, savedData);
+      await this.cacheManager.set(`latest_price_${symbol}`, savedData);
       // this.logger.log('📢 Broadcasting to Sockets...'); // ჩაამატე ეს ლოგი შესამოწმებლად
       this.assetsGateway.broadcastPrice(symbol, savedData);
       // this.logger.debug(`✅ Sync successful for ${symbol}: ${data.lastPrice}`);

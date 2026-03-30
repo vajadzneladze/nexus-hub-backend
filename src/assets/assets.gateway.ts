@@ -4,7 +4,7 @@ import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 
-export class AssetsGateWay implements OnGatewayInit {
+export class AssetsGateway implements OnGatewayInit {
   @WebSocketServer() server: Server;
 
   @SubscribeMessage('subscribeToSymbol')
@@ -19,7 +19,7 @@ export class AssetsGateWay implements OnGatewayInit {
 
 
 
-  private logger = new Logger(AssetsGateWay.name);
+  private logger = new Logger(AssetsGateway.name);
 
   afterInit(server: Server) {
     this.logger.log('Initialized WebSocket Server');
